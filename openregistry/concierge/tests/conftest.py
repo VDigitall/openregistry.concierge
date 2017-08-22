@@ -29,8 +29,12 @@ def mock_client(mocker):
 
 
 @pytest.fixture(scope='function')
-def bot(mock_client):
-    return BotWorker(TEST_CONFIG, mock_client)
+def bot(mock_client, moker):
+    mocker.patch('openregistry.concierge.worker.LotsClient',
+                 spec=True)
+    mocker.patch('openregistry.concierge.worker.AssetsClient',
+                 spec=True)
+    return BotWorker(TEST_CONFIG)
 
 
 class LogInterceptor(object):

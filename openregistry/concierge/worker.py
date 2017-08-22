@@ -7,7 +7,7 @@ import yaml
 
 from couchdb.http import RETRYABLE_ERRORS
 
-from openprocurement_client.registry_client import RegistryClient
+from openprocurement_client.registry_client import LotsClient, AssetsClient
 from openprocurement_client.exceptions import InvalidResponse, Forbidden, RequestFailed
 
 from .utils import prepare_couchdb, continuous_changes_feed
@@ -21,16 +21,16 @@ logger.addHandler(ch)
 
 
 class BotWorker(object):
-    def __init__(self, config, client):
+    def __init__(self, config):
         self.config = config
         self.sleep = self.config['time_to_sleep']
-        self.lots_client = client(
+        self.lots_client = LotsClient(
             resource="lots",
             key=self.config['lots']['api']['token'],
             host_url=self.config['lots']['api']['url'],
             api_version=self.config['lots']['api']['version']
         )
-        self.assets_client = client(
+        self.assets_client = AssetsClient(
             resource="assets",
             key=self.config['assets']['api']['token'],
             host_url=self.config['assets']['api']['url'],
@@ -93,7 +93,7 @@ class BotWorker(object):
         for asset_id in lot['assets']:
             asset = {"data": {"id": asset_id, "status": status, "relatedLot": related_lot}}
             try:
-                self.assets_client.patch_asset(asset)
+                self.assets_client.patch_resource_item(asset)
             except (InvalidResponse, Forbidden, RequestFailed) as e:
                 logger.error("Failed to patch asset {} to {} ({})".format(asset_id, status, e))
                 return False
@@ -104,7 +104,7 @@ class BotWorker(object):
     def patch_lot(self, lot, status):
         lot['status'] = status
         try:
-            self.lots_client.patch_lot({"data": lot})
+            self.lots_client.patch_resource_item({"data": lot})
         except (InvalidResponse, Forbidden, RequestFailed) as e:
             logger.error("Failed to patch lot {} to {}".format(lot['id'], status))
             return False
@@ -120,7 +120,7 @@ def main():
     if os.path.isfile(params.config):
         with open(params.config) as config_object:
             config = yaml.load(config_object.read())
-        BotWorker(config, RegistryClient).run()
+        BotWorker(config).run()
 
 if __name__ == "__main__":
     main()
