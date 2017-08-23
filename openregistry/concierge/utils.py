@@ -26,10 +26,11 @@ def prepare_couchdb(couch_url, db_name, logger):
     return db
 
 
-def continuous_changes_feed(db, timeout=10, limit=100,
+def continuous_changes_feed(db, logger, timeout=10, limit=100,
                             filter_doc='lots/status'):
     last_seq_id = 0
     while CONTINUOUS_CHANGES_FEED_FLAG:
+        logger.info('Getting Lots')
         data = db.changes(include_docs=True, since=last_seq_id, limit=limit,
                           filter=filter_doc)
         last_seq_id = data['last_seq']
